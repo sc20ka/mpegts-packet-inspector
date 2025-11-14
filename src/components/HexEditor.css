@@ -1,0 +1,64 @@
+.hex-editor {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.hex-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.hex-offset {
+  color: #858585;
+  min-width: 60px;
+  user-select: none;
+}
+
+.hex-bytes {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.hex-byte {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.hex-byte:hover {
+  background-color: #2d2d30 !important;
+}
+
+.hex-byte.selected {
+  background-color: #264f78 !important;
+  outline: 1px solid #007acc;
+}
+
+.ascii-chars {
+  color: #9cdcfe;
+  letter-spacing: 2px;
+}
+
+.ascii-char {
+  display: inline-block;
+  cursor: pointer;
+  padding: 2px 1px;
+}
+
+.ascii-char:hover {
+  background-color: #2d2d30;
+}
+
+.ascii-char.selected {
+  background-color: #264f78;
+  outline: 1px solid #007acc;
+}
