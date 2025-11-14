@@ -12,7 +12,7 @@ WebUI tool for visual analysis and editing of MPEG-TS packages with the ability 
 - **Import/Export**: Load TS files and download modified packets
 - **Syntax Highlighting**: Color-coded hex view showing header, adaptation field, and payload
 
-### Phase 2: Core Features ✅ (NEW!)
+### Phase 2: Core Features ✅
 - **Bit-Level Editor**: Interactive bit editor with visual bit toggles and real-time binary/hex/decimal conversion
 - **Field-Level Editing**: Edit packet fields directly in the visual inspector with Input controls
 - **Edit Mode Toggle**: Switch between read-only inspection and editable mode
@@ -22,6 +22,20 @@ WebUI tool for visual analysis and editing of MPEG-TS packages with the ability 
 - **Packet Analysis Tab**: Comprehensive packet statistics, classification, and size distribution visualization
 - **Enhanced Validation**: Real-time validation with error/warning badges in header
 - **Multi-Bit Field Editor**: Grouped bit editing with labeled bit positions and descriptions
+
+### Phase 2.5: Complete Field Support ✅ (LATEST!)
+- **ALL MPEG-TS Fields Supported**: Every field from ISO/IEC 13818-1 standard
+- **Transport Private Data**: Full display and editing of custom private data (up to 255 bytes)
+- **OPCR Support**: Original Program Clock Reference for re-multiplexing
+- **Splice Countdown**: Splicing point indicator with countdown value
+- **Elementary Stream Priority**: High priority stream marking
+- **Complete AF Extension**:
+  - **LTW** (Legal Time Window): Valid flag + 15-bit offset
+  - **Piecewise Rate**: 22-bit bandwidth control (displayed in bytes/sec)
+  - **Seamless Splice**: Video/audio splice type + 33-bit DTS Next AU
+- **10 Sample Packets**: Organized into 4 categories (Basic, Advanced, Extensions, Complex)
+- **Full Serialization**: Complete round-trip support for all fields
+- **ISO Compliant**: Proper marker bits, bit packing, and alignment
 
 ## Technology Stack
 
@@ -68,11 +82,25 @@ npm run preview
 ### Loading a Packet
 
 1. **Upload TS File**: Click "Upload TS File" to load a binary MPEG-TS file
-2. **Create Sample**: Use the dropdown to create pre-built sample packets:
-   - **PAT Packet (PID 0)**: Program Association Table packet
-   - **Packet with PCR**: Packet with Program Clock Reference
-   - **Null Packet (0x1FFF)**: Standard null packet for padding
-   - **Adaptation Only**: Packet with only adaptation field (no payload)
+2. **Create Sample**: Use the dropdown to create pre-built sample packets (10 types available):
+
+   **Basic Packets:**
+   - PAT Packet (PID 0)
+   - Packet with PCR
+   - Null Packet (0x1FFF)
+   - Adaptation Only
+
+   **Advanced Features:**
+   - 🔒 Transport Private Data - 16 bytes of custom data (PID 257)
+   - ⏰ OPCR + Splice Countdown - Multiple timing references (PID 258)
+
+   **AF Extensions:**
+   - 📺 Extension: LTW - Legal Time Window (PID 259)
+   - 📊 Extension: Piecewise Rate - Bandwidth control (PID 260)
+   - 🎬 Extension: Seamless Splice - Smooth transitions (PID 261)
+
+   **Complex:**
+   - ⭐ All Features Combined - PCR, OPCR, Splice, Private Data (PID 262)
 
 ### Visual Inspector
 
