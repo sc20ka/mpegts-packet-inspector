@@ -120,10 +120,9 @@ function parseAdaptationField(data: Uint8Array, offset: number) {
 
   // Parse adaptation field extension if present
   if (adaptationField.adaptationFieldExtensionFlag) {
-    // TODO: Implement full extension parsing
-    const extLength = data[offset];
-    offset++;
-    offset += extLength; // Skip for now
+    const afExtResult = parseAdaptationFieldExtension(data, offset);
+    adaptationField.extension = afExtResult.extension;
+    offset = afExtResult.nextOffset;
   }
 
   // Calculate stuffing bytes
@@ -186,6 +185,66 @@ function parseOPCR(bytes: Uint8Array) {
     base,
     reserved,
     extension,
+  };
+}
+
+/**
+ * Parse Adaptation Field Extension
+ */
+function parseAdaptationFieldExtension(data: Uint8Array, offset: number) {
+  const extLength = data[offset];
+  offset++;
+
+  const extStart = offset;
+  const flags = data[offset];
+  offset++;
+
+  const extension: TSPacket['adaptationField']['extension'] = {
+    length: extLength,
+    ltwFlag: !!(flags & 0b10000000),
+    piecewiseRateFlag: !!(flags & 0b01000000),
+    seamlessSpliceFlag: !!(flags & 0b00100000),
+  };
+
+  // Parse LTW (Legal Time Window) if present
+  if (extension.ltwFlag) {
+    const ltwBytes = (data[offset] << 8) | data[offset + 1];
+    extension.ltw = {
+      validFlag: !!(ltwBytes & 0x8000),
+      offset: ltwBytes & 0x7fff,
+    };
+    offset += 2;
+  }
+
+  // Parse Piecewise Rate if present
+  if (extension.piecewiseRateFlag) {
+    const prBytes = (data[offset] << 16) | (data[offset + 1] << 8) | data[offset + 2];
+    extension.piecewiseRate = prBytes & 0x3fffff; // 22 bits
+    offset += 3;
+  }
+
+  // Parse Seamless Splice if present
+  if (extension.seamlessSpliceFlag) {
+    const spliceType = (data[offset] >> 4) & 0x0f;
+
+    // DTS Next AU is 33 bits spread across 5 bytes with marker bits
+    const dtsNextAu =
+      (BigInt((data[offset] >> 1) & 0x07) << 30n) |
+      (BigInt(data[offset + 1]) << 22n) |
+      (BigInt((data[offset + 2] >> 1) & 0x7f) << 15n) |
+      (BigInt(data[offset + 3]) << 7n) |
+      (BigInt((data[offset + 4] >> 1) & 0x7f));
+
+    extension.seamlessSplice = {
+      spliceType,
+      dtsNextAu,
+    };
+    offset += 5;
+  }
+
+  return {
+    extension,
+    nextOffset: extStart + extLength,
   };
 }
 

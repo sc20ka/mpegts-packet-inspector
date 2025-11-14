@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Layout,
   Typography,
@@ -9,57 +9,100 @@ import {
   Tabs,
   Select,
   Divider,
+  Switch,
+  Badge,
 } from 'antd';
 import {
   UploadOutlined,
-  FileAddOutlined,
   DownloadOutlined,
   ReloadOutlined,
+  UndoOutlined,
+  RedoOutlined,
+  EditOutlined,
+  EyeOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import { PacketVisualizer } from './components/PacketVisualizer';
+import { EditablePacketVisualizer } from './components/EditablePacketVisualizer';
 import { HexEditor } from './components/HexEditor';
+import { PacketAnalysis } from './components/PacketAnalysis';
 import { parsePacket, validatePacket, serializePacket } from './lib/mpegts-parser';
-import { TSPacket } from './types/TSPacket';
+import { TSPacket, ValidationResult } from './types/TSPacket';
 import {
   createSamplePATPacket,
   createSamplePacketWithPCR,
   createNullPacket,
   createAdaptationOnlyPacket,
 } from './utils/samplePackets';
+import { useHistory } from './hooks/useHistory';
 import './App.css';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 
+interface PacketState {
+  packet: TSPacket | null;
+  rawData: Uint8Array | null;
+}
+
 function App() {
-  const [packet, setPacket] = useState<TSPacket | null>(null);
-  const [rawData, setRawData] = useState<Uint8Array | null>(null);
+  const history = useHistory<PacketState>({
+    packet: null,
+    rawData: null,
+  });
 
-  const loadPacket = useCallback((data: Uint8Array) => {
-    try {
-      const parsed = parsePacket(data);
-      const validation = validatePacket(parsed);
+  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
-      setPacket(parsed);
-      setRawData(data);
+  const packet = history.state.packet;
+  const rawData = history.state.rawData;
 
-      if (validation.errors.length > 0) {
-        validation.errors.forEach((error) => {
-          if (error.severity === 'error') {
-            message.error(`${error.field}: ${error.message}`);
-          } else {
-            message.warning(`${error.field}: ${error.message}`);
-          }
-        });
-      } else {
-        message.success('Packet loaded and validated successfully!');
-      }
-    } catch (error) {
-      message.error(`Failed to parse packet: ${(error as Error).message}`);
-      console.error(error);
+  useEffect(() => {
+    if (packet) {
+      const result = validatePacket(packet);
+      setValidation(result);
+    } else {
+      setValidation(null);
     }
-  }, []);
+  }, [packet]);
+
+  const loadPacket = useCallback(
+    (data: Uint8Array, addToHistory = true) => {
+      try {
+        const parsed = parsePacket(data);
+        const validation = validatePacket(parsed);
+
+        const newState = {
+          packet: parsed,
+          rawData: data,
+        };
+
+        if (addToHistory) {
+          history.set(newState);
+        } else {
+          history.reset(newState);
+        }
+
+        if (validation.errors.length > 0) {
+          const errors = validation.errors.filter((e) => e.severity === 'error').length;
+          const warnings = validation.errors.filter((e) => e.severity === 'warning').length;
+
+          if (errors > 0) {
+            message.error(`Packet has ${errors} error(s) and ${warnings} warning(s)`);
+          } else if (warnings > 0) {
+            message.warning(`Packet has ${warnings} warning(s)`);
+          }
+        } else {
+          message.success('Packet loaded and validated successfully!');
+        }
+      } catch (error) {
+        message.error(`Failed to parse packet: ${(error as Error).message}`);
+        console.error(error);
+      }
+    },
+    [history]
+  );
 
   const uploadProps: UploadProps = {
     accept: '.ts,.bin,.dat',
@@ -75,7 +118,7 @@ function App() {
         }
 
         // Load first packet
-        loadPacket(data.slice(0, 188));
+        loadPacket(data.slice(0, 188), false);
       };
       reader.readAsArrayBuffer(file);
       return false; // Prevent upload
@@ -104,7 +147,7 @@ function App() {
         return;
     }
 
-    loadPacket(data);
+    loadPacket(data, false);
     message.success(`Sample ${type.toUpperCase()} packet created!`);
   };
 
@@ -136,6 +179,29 @@ function App() {
     newData[offset] = value;
     loadPacket(newData);
     message.info(`Byte at offset 0x${offset.toString(16).toUpperCase()} updated`);
+  };
+
+  const handleFieldEdit = (field: string, value: any) => {
+    if (!packet || !rawData) return;
+
+    // Update packet field
+    const fieldParts = field.split('.');
+    const newPacket = JSON.parse(JSON.stringify(packet)); // Deep clone
+
+    let target: any = newPacket;
+    for (let i = 0; i < fieldParts.length - 1; i++) {
+      target = target[fieldParts[i]];
+    }
+    target[fieldParts[fieldParts.length - 1]] = value;
+
+    // Serialize and reload
+    try {
+      const newData = serializePacket(newPacket);
+      loadPacket(newData);
+      message.success(`Field ${field} updated`);
+    } catch (error) {
+      message.error(`Failed to update field: ${(error as Error).message}`);
+    }
   };
 
   const getHighlights = () => {
@@ -174,12 +240,33 @@ function App() {
     return highlights;
   };
 
+  const errorCount = validation?.errors.filter((e) => e.severity === 'error').length || 0;
+  const warningCount = validation?.errors.filter((e) => e.severity === 'warning').length || 0;
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ background: '#1890ff', padding: '0 24px' }}>
-        <Title level={3} style={{ color: 'white', margin: '16px 0' }}>
-          MPEG-TS Packet Inspector
-        </Title>
+        <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+          <Title level={3} style={{ color: 'white', margin: '16px 0' }}>
+            🔍 MPEG-TS Packet Inspector
+          </Title>
+          {validation && (
+            <Space>
+              {errorCount > 0 && (
+                <Badge count={errorCount} style={{ backgroundColor: '#ff4d4f' }}>
+                  <Button danger size="small">
+                    Errors
+                  </Button>
+                </Badge>
+              )}
+              {warningCount > 0 && (
+                <Badge count={warningCount} style={{ backgroundColor: '#faad14' }}>
+                  <Button size="small">Warnings</Button>
+                </Badge>
+              )}
+            </Space>
+          )}
+        </Space>
       </Header>
 
       <Content style={{ padding: '24px' }}>
@@ -202,18 +289,53 @@ function App() {
               <Select.Option value="adaptation-only">Adaptation Only</Select.Option>
             </Select>
 
+            <Divider type="vertical" />
+
+            <Button
+              icon={<UndoOutlined />}
+              onClick={history.undo}
+              disabled={!history.canUndo}
+              title="Undo (Ctrl+Z)"
+            >
+              Undo
+            </Button>
+
+            <Button
+              icon={<RedoOutlined />}
+              onClick={history.redo}
+              disabled={!history.canRedo}
+              title="Redo (Ctrl+Y)"
+            >
+              Redo
+            </Button>
+
+            <Divider type="vertical" />
+
+            <Space>
+              <Text>Edit Mode:</Text>
+              <Switch
+                checked={editMode}
+                onChange={setEditMode}
+                checkedChildren={<EditOutlined />}
+                unCheckedChildren={<EyeOutlined />}
+              />
+            </Space>
+
+            <Divider type="vertical" />
+
             <Button
               icon={<DownloadOutlined />}
               onClick={downloadPacket}
               disabled={!packet}
+              type="primary"
             >
-              Download Packet
+              Download
             </Button>
 
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {
-                if (rawData) loadPacket(rawData);
+                if (rawData) loadPacket(rawData, false);
               }}
               disabled={!packet}
             >
@@ -229,8 +351,17 @@ function App() {
             items={[
               {
                 key: 'visual',
-                label: 'Visual Inspector',
-                children: <PacketVisualizer packet={packet} />,
+                label: editMode ? 'Visual Editor' : 'Visual Inspector',
+                icon: editMode ? <EditOutlined /> : <EyeOutlined />,
+                children: editMode ? (
+                  <EditablePacketVisualizer
+                    packet={packet}
+                    onFieldChange={handleFieldEdit}
+                    editMode={editMode}
+                  />
+                ) : (
+                  <PacketVisualizer packet={packet} />
+                ),
               },
               {
                 key: 'hex',
@@ -245,6 +376,12 @@ function App() {
                   <Text type="secondary">No data loaded</Text>
                 ),
               },
+              {
+                key: 'analysis',
+                label: 'Analysis',
+                icon: <BarChartOutlined />,
+                children: <PacketAnalysis packet={packet} validation={validation} />,
+              },
             ]}
           />
         </Space>
@@ -252,8 +389,7 @@ function App() {
 
       <Footer style={{ textAlign: 'center' }}>
         <Text type="secondary">
-          MPEG-TS Packet Inspector - WebUI tool for visual analysis and editing of MPEG-TS
-          packages
+          MPEG-TS Packet Inspector v2.0 - Phase 2: Enhanced editing and analysis features
         </Text>
       </Footer>
     </Layout>

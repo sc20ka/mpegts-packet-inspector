@@ -1,0 +1,73 @@
+.bit-editor-container {
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.bit-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bits-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.bit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bit.editable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.bit.readonly {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.bit.active {
+  background-color: #52c41a;
+  color: white;
+  border: 2px solid #389e0d;
+}
+
+.bit.inactive {
+  background-color: #d9d9d9;
+  color: #595959;
+  border: 2px solid #bfbfbf;
+}
+
+.bit.editable.active:hover {
+  background-color: #73d13d;
+  border-color: #52c41a;
+}
+
+.bit.editable.inactive:hover {
+  background-color: #bfbfbf;
+  border-color: #8c8c8c;
+}
+
+.bit-index {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.bit-value {
+  font-size: 16px;
+  font-weight: bold;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+}
