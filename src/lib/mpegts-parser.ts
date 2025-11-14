@@ -377,6 +377,59 @@ export function serializePacket(packet: TSPacket): Uint8Array {
         offset++;
       }
 
+      // Write transport private data if present
+      if (packet.adaptationField.transportPrivateData) {
+        const tpd = packet.adaptationField.transportPrivateData;
+        data[offset] = tpd.length;
+        offset++;
+        data.set(tpd.data, offset);
+        offset += tpd.length;
+      }
+
+      // Write adaptation field extension if present
+      if (packet.adaptationField.extension) {
+        const ext = packet.adaptationField.extension;
+        data[offset] = ext.length;
+        offset++;
+
+        // Extension flags
+        const extFlags =
+          (ext.ltwFlag ? 0b10000000 : 0) |
+          (ext.piecewiseRateFlag ? 0b01000000 : 0) |
+          (ext.seamlessSpliceFlag ? 0b00100000 : 0);
+        data[offset] = extFlags;
+        offset++;
+
+        // Write LTW if present
+        if (ext.ltw) {
+          const ltwWord = (ext.ltw.validFlag ? 0x8000 : 0) | (ext.ltw.offset & 0x7fff);
+          data[offset] = (ltwWord >> 8) & 0xff;
+          data[offset + 1] = ltwWord & 0xff;
+          offset += 2;
+        }
+
+        // Write Piecewise Rate if present
+        if (ext.piecewiseRate !== undefined) {
+          data[offset] = 0xc0 | ((ext.piecewiseRate >> 16) & 0x3f);
+          data[offset + 1] = (ext.piecewiseRate >> 8) & 0xff;
+          data[offset + 2] = ext.piecewiseRate & 0xff;
+          offset += 3;
+        }
+
+        // Write Seamless Splice if present
+        if (ext.seamlessSplice) {
+          const ss = ext.seamlessSplice;
+          const dts = ss.dtsNextAu;
+
+          data[offset] = (ss.spliceType << 4) | (Number((dts >> 30n) & 0x07n) << 1) | 0x01;
+          data[offset + 1] = Number((dts >> 22n) & 0xffn);
+          data[offset + 2] = (Number((dts >> 15n) & 0x7fn) << 1) | 0x01;
+          data[offset + 3] = Number((dts >> 7n) & 0xffn);
+          data[offset + 4] = (Number(dts & 0x7fn) << 1) | 0x01;
+          offset += 5;
+        }
+      }
+
       // Write stuffing bytes
       if (packet.adaptationField.stuffingBytes) {
         data.set(packet.adaptationField.stuffingBytes, offset);

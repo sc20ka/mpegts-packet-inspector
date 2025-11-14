@@ -135,6 +135,45 @@ export const PacketVisualizer: React.FC<PacketVisualizerProps> = ({ packet }) =>
               </Descriptions.Item>
             )}
 
+            {packet.adaptationField.elementaryStreamPriorityIndicator !== undefined && (
+              <Descriptions.Item label="Elementary Stream Priority Indicator">
+                <Tag color={packet.adaptationField.elementaryStreamPriorityIndicator ? 'gold' : 'default'}>
+                  {packet.adaptationField.elementaryStreamPriorityIndicator ? 'High Priority' : 'Normal'}
+                </Tag>
+              </Descriptions.Item>
+            )}
+
+            {/* Flags Display */}
+            <Descriptions.Item label="Flags">
+              <Space wrap>
+                {packet.adaptationField.pcrFlag !== undefined && (
+                  <Tag color={packet.adaptationField.pcrFlag ? 'green' : 'default'}>
+                    PCR: {packet.adaptationField.pcrFlag ? 'Yes' : 'No'}
+                  </Tag>
+                )}
+                {packet.adaptationField.opcrFlag !== undefined && (
+                  <Tag color={packet.adaptationField.opcrFlag ? 'green' : 'default'}>
+                    OPCR: {packet.adaptationField.opcrFlag ? 'Yes' : 'No'}
+                  </Tag>
+                )}
+                {packet.adaptationField.splicingPointFlag !== undefined && (
+                  <Tag color={packet.adaptationField.splicingPointFlag ? 'orange' : 'default'}>
+                    Splice: {packet.adaptationField.splicingPointFlag ? 'Yes' : 'No'}
+                  </Tag>
+                )}
+                {packet.adaptationField.transportPrivateDataFlag !== undefined && (
+                  <Tag color={packet.adaptationField.transportPrivateDataFlag ? 'purple' : 'default'}>
+                    Private Data: {packet.adaptationField.transportPrivateDataFlag ? 'Yes' : 'No'}
+                  </Tag>
+                )}
+                {packet.adaptationField.adaptationFieldExtensionFlag !== undefined && (
+                  <Tag color={packet.adaptationField.adaptationFieldExtensionFlag ? 'cyan' : 'default'}>
+                    Extension: {packet.adaptationField.adaptationFieldExtensionFlag ? 'Yes' : 'No'}
+                  </Tag>
+                )}
+              </Space>
+            </Descriptions.Item>
+
             {packet.adaptationField.pcr && (
               <Descriptions.Item label="PCR (Program Clock Reference)">
                 <Space direction="vertical">
@@ -167,6 +206,92 @@ export const PacketVisualizer: React.FC<PacketVisualizerProps> = ({ packet }) =>
             {packet.adaptationField.spliceCountdown !== undefined && (
               <Descriptions.Item label="Splice Countdown">
                 <Text code>{packet.adaptationField.spliceCountdown}</Text>
+              </Descriptions.Item>
+            )}
+
+            {packet.adaptationField.transportPrivateData && (
+              <Descriptions.Item label="Transport Private Data">
+                <Space direction="vertical">
+                  <Text>
+                    Length: <Text code>{packet.adaptationField.transportPrivateData.length}</Text> bytes
+                  </Text>
+                  <Text>
+                    Data: <Text code style={{ wordBreak: 'break-all', fontSize: 11 }}>
+                      {Array.from(packet.adaptationField.transportPrivateData.data.slice(0, 32))
+                        .map((b) => b.toString(16).toUpperCase().padStart(2, '0'))
+                        .join(' ')}
+                      {packet.adaptationField.transportPrivateData.data.length > 32 && '...'}
+                    </Text>
+                  </Text>
+                </Space>
+              </Descriptions.Item>
+            )}
+
+            {packet.adaptationField.extension && (
+              <Descriptions.Item label="Adaptation Field Extension">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text strong>Extension Length: <Text code>{packet.adaptationField.extension.length}</Text> bytes</Text>
+
+                  {packet.adaptationField.extension.ltw && (
+                    <Card size="small" type="inner" title="LTW (Legal Time Window)">
+                      <Space direction="vertical">
+                        <Text>
+                          Valid Flag: <Tag color={packet.adaptationField.extension.ltw.validFlag ? 'success' : 'default'}>
+                            {packet.adaptationField.extension.ltw.validFlag ? 'Valid' : 'Invalid'}
+                          </Tag>
+                        </Text>
+                        <Text>
+                          Offset: <Text code>{packet.adaptationField.extension.ltw.offset}</Text>
+                        </Text>
+                      </Space>
+                    </Card>
+                  )}
+
+                  {packet.adaptationField.extension.piecewiseRate !== undefined && (
+                    <Card size="small" type="inner" title="Piecewise Rate">
+                      <Text>
+                        Rate: <Text code>{packet.adaptationField.extension.piecewiseRate}</Text>
+                        <Text type="secondary"> ({(packet.adaptationField.extension.piecewiseRate * 50).toLocaleString()} bytes/sec)</Text>
+                      </Text>
+                    </Card>
+                  )}
+
+                  {packet.adaptationField.extension.seamlessSplice && (
+                    <Card size="small" type="inner" title="Seamless Splice">
+                      <Space direction="vertical">
+                        <Text>
+                          Splice Type: <Text code>{packet.adaptationField.extension.seamlessSplice.spliceType}</Text>
+                          <Tag color="blue" style={{ marginLeft: 8 }}>
+                            {packet.adaptationField.extension.seamlessSplice.spliceType === 0 ? 'Video' :
+                             packet.adaptationField.extension.seamlessSplice.spliceType === 1 ? 'Audio' : 'Other'}
+                          </Tag>
+                        </Text>
+                        <Text>
+                          DTS Next AU: <Text code>{packet.adaptationField.extension.seamlessSplice.dtsNextAu.toString()}</Text>
+                        </Text>
+                      </Space>
+                    </Card>
+                  )}
+
+                  {/* Extension Flags */}
+                  <Space wrap>
+                    {packet.adaptationField.extension.ltwFlag !== undefined && (
+                      <Tag color={packet.adaptationField.extension.ltwFlag ? 'processing' : 'default'}>
+                        LTW: {packet.adaptationField.extension.ltwFlag ? 'Present' : 'Absent'}
+                      </Tag>
+                    )}
+                    {packet.adaptationField.extension.piecewiseRateFlag !== undefined && (
+                      <Tag color={packet.adaptationField.extension.piecewiseRateFlag ? 'processing' : 'default'}>
+                        Piecewise Rate: {packet.adaptationField.extension.piecewiseRateFlag ? 'Present' : 'Absent'}
+                      </Tag>
+                    )}
+                    {packet.adaptationField.extension.seamlessSpliceFlag !== undefined && (
+                      <Tag color={packet.adaptationField.extension.seamlessSpliceFlag ? 'processing' : 'default'}>
+                        Seamless Splice: {packet.adaptationField.extension.seamlessSpliceFlag ? 'Present' : 'Absent'}
+                      </Tag>
+                    )}
+                  </Space>
+                </Space>
               </Descriptions.Item>
             )}
 

@@ -34,6 +34,12 @@ import {
   createSamplePacketWithPCR,
   createNullPacket,
   createAdaptationOnlyPacket,
+  createPacketWithPrivateData,
+  createPacketWithOPCRAndSplice,
+  createPacketWithExtensionLTW,
+  createPacketWithExtensionPiecewiseRate,
+  createPacketWithExtensionSeamlessSplice,
+  createComplexPacket,
 } from './utils/samplePackets';
 import { useHistory } from './hooks/useHistory';
 import './App.css';
@@ -128,6 +134,7 @@ function App() {
 
   const createSamplePacket = (type: string) => {
     let data: Uint8Array;
+    let name = type.toUpperCase();
 
     switch (type) {
       case 'pat':
@@ -142,13 +149,37 @@ function App() {
       case 'adaptation-only':
         data = createAdaptationOnlyPacket();
         break;
+      case 'private-data':
+        data = createPacketWithPrivateData();
+        name = 'Private Data';
+        break;
+      case 'opcr-splice':
+        data = createPacketWithOPCRAndSplice();
+        name = 'OPCR & Splice';
+        break;
+      case 'extension-ltw':
+        data = createPacketWithExtensionLTW();
+        name = 'Extension (LTW)';
+        break;
+      case 'extension-piecewise':
+        data = createPacketWithExtensionPiecewiseRate();
+        name = 'Extension (Piecewise Rate)';
+        break;
+      case 'extension-seamless':
+        data = createPacketWithExtensionSeamlessSplice();
+        name = 'Extension (Seamless Splice)';
+        break;
+      case 'complex':
+        data = createComplexPacket();
+        name = 'Complex (All Features)';
+        break;
       default:
         message.error('Unknown sample type');
         return;
     }
 
     loadPacket(data, false);
-    message.success(`Sample ${type.toUpperCase()} packet created!`);
+    message.success(`Sample packet "${name}" created!`);
   };
 
   const downloadPacket = () => {
@@ -279,14 +310,28 @@ function App() {
 
             <Select
               placeholder="Create Sample Packet"
-              style={{ width: 200 }}
+              style={{ width: 260 }}
               onChange={createSamplePacket}
               value={undefined}
             >
-              <Select.Option value="pat">PAT Packet (PID 0)</Select.Option>
-              <Select.Option value="pcr">Packet with PCR</Select.Option>
-              <Select.Option value="null">Null Packet (0x1FFF)</Select.Option>
-              <Select.Option value="adaptation-only">Adaptation Only</Select.Option>
+              <Select.OptGroup label="Basic Packets">
+                <Select.Option value="pat">PAT Packet (PID 0)</Select.Option>
+                <Select.Option value="pcr">Packet with PCR</Select.Option>
+                <Select.Option value="null">Null Packet (0x1FFF)</Select.Option>
+                <Select.Option value="adaptation-only">Adaptation Only</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="Advanced Features">
+                <Select.Option value="private-data">🔒 Transport Private Data</Select.Option>
+                <Select.Option value="opcr-splice">⏰ OPCR + Splice Countdown</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="AF Extensions">
+                <Select.Option value="extension-ltw">📺 Extension: LTW</Select.Option>
+                <Select.Option value="extension-piecewise">📊 Extension: Piecewise Rate</Select.Option>
+                <Select.Option value="extension-seamless">🎬 Extension: Seamless Splice</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="Complex">
+                <Select.Option value="complex">⭐ All Features Combined</Select.Option>
+              </Select.OptGroup>
             </Select>
 
             <Divider type="vertical" />
