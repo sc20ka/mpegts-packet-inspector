@@ -23,7 +23,7 @@ WebUI tool for visual analysis and editing of MPEG-TS packages with the ability 
 - **Enhanced Validation**: Real-time validation with error/warning badges in header
 - **Multi-Bit Field Editor**: Grouped bit editing with labeled bit positions and descriptions
 
-### Phase 2.5: Complete Field Support ✅ (LATEST!)
+### Phase 2.5: Complete Field Support ✅
 - **ALL MPEG-TS Fields Supported**: Every field from ISO/IEC 13818-1 standard
 - **Transport Private Data**: Full display and editing of custom private data (up to 255 bytes)
 - **OPCR Support**: Original Program Clock Reference for re-multiplexing
@@ -36,6 +36,42 @@ WebUI tool for visual analysis and editing of MPEG-TS packages with the ability 
 - **10 Sample Packets**: Organized into 4 categories (Basic, Advanced, Extensions, Complex)
 - **Full Serialization**: Complete round-trip support for all fields
 - **ISO Compliant**: Proper marker bits, bit packing, and alignment
+
+### Phase 3: Enhanced UX ✅ (LATEST!)
+- **Auto-Calculations**:
+  - Auto-update adaptation field and extension lengths
+  - Auto-add stuffing bytes to reach 188 bytes
+  - Increment continuity counter with automatic wrap-around
+  - Validate packet length with detailed error messages
+  - One-click "Auto-Fix All" button
+  - Auto mode for automatic calculations on changes
+- **Multi-Format Export**:
+  - Binary (.ts) - Standard transport stream file
+  - JSON - With bigint/Uint8Array support
+  - C Array - For embedded systems
+  - Python Bytes - For Python scripts
+  - Hex String - For debugging
+  - Text Report - Detailed human-readable analysis
+  - Copy to clipboard (JSON, Hex)
+- **Template System**:
+  - Save current packet as reusable template
+  - Load templates to create new packets
+  - Template metadata (name, description, tags)
+  - Import/Export templates as JSON
+  - Share templates across devices
+  - localStorage persistence
+- **Field Documentation**:
+  - Comprehensive help for all 19 MPEG-TS fields
+  - Searchable field reference
+  - ISO/IEC 13818-1 standard citations
+  - Technical specifications and examples
+  - Organized by category (Header, AF, Extensions)
+- **Keyboard Shortcuts**:
+  - Ctrl+Z / Cmd+Z: Undo
+  - Ctrl+Y / Cmd+Y: Redo
+  - Ctrl+E / Cmd+E: Toggle edit mode
+  - Ctrl+S / Cmd+S: Export JSON
+  - Ctrl+L / Cmd+L: Auto-fix packet
 
 ## Technology Stack
 
@@ -138,19 +174,32 @@ Click **Download Packet** to save the current packet as a binary `.ts` file.
 ```
 src/
 ├── components/
-│   ├── PacketVisualizer.tsx   # Visual packet display component
-│   ├── HexEditor.tsx           # Hex editor component
-│   └── HexEditor.css           # Hex editor styles
+│   ├── PacketVisualizer.tsx         # Visual packet display component
+│   ├── EditablePacketVisualizer.tsx # Editable packet fields
+│   ├── HexEditor.tsx                # Hex editor component
+│   ├── BitEditor.tsx                # Bit-level editor
+│   ├── PacketAnalysis.tsx           # Packet statistics and analysis
+│   ├── AutoCalculator.tsx           # Auto-calculation utilities UI
+│   ├── ExportMenu.tsx               # Multi-format export menu
+│   ├── TemplateManager.tsx          # Template management UI
+│   ├── FieldHelp.tsx                # Field documentation panel
+│   └── HexEditor.css                # Hex editor styles
 ├── lib/
-│   └── mpegts-parser.ts        # MPEG-TS packet parser & serializer
+│   └── mpegts-parser.ts             # MPEG-TS packet parser & serializer
 ├── types/
-│   └── TSPacket.ts             # TypeScript interfaces
+│   └── TSPacket.ts                  # TypeScript interfaces
 ├── utils/
-│   └── samplePackets.ts        # Sample packet generators
-├── App.tsx                     # Main application component
-├── App.css                     # Application styles
-├── main.tsx                    # Application entry point
-└── index.css                   # Global styles
+│   ├── samplePackets.ts             # Sample packet generators
+│   ├── autoCalculations.ts          # Auto-calculation utilities
+│   ├── exportImport.ts              # Export/import functions
+│   ├── templates.ts                 # Template storage and management
+│   └── fieldHelp.tsx                # Field documentation database
+├── hooks/
+│   └── useHistory.ts                # Undo/Redo history hook
+├── App.tsx                          # Main application component
+├── App.css                          # Application styles
+├── main.tsx                         # Application entry point
+└── index.css                        # Global styles
 ```
 
 ## MPEG-TS Packet Format
@@ -194,13 +243,14 @@ MPEG-TS packets are 188 bytes (or 204 with FEC) structured as:
 - [x] Packet analysis and statistics view
 - [x] Edit mode toggle
 
-### 📋 Phase 3: Enhanced UX (Next)
-- [ ] Multilingual support (en/ru)
-- [ ] Interactive tooltips with field descriptions
-- [ ] Auto-calculations (adaptation field length, continuity counter)
-- [ ] Keyboard shortcuts (Ctrl+Z/Y for undo/redo)
-- [ ] Export to JSON format
-- [ ] Packet templates
+### ✅ Phase 3: Enhanced UX (Completed)
+- [x] Auto-calculations (adaptation field length, continuity counter, stuffing)
+- [x] Keyboard shortcuts (Ctrl+Z/Y for undo/redo, Ctrl+E/S/L)
+- [x] Export to multiple formats (JSON, C, Python, Hex, Binary, Text Report)
+- [x] Packet template system with import/export
+- [x] Comprehensive field documentation with ISO references
+- [x] Auto-fix functionality
+- [ ] Multilingual support (en/ru) - Future
 
 ### 🚀 Phase 4: Advanced Features (Future)
 - [ ] Stream analysis (multiple packets)
