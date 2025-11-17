@@ -22,6 +22,7 @@ import {
   BarChartOutlined,
   CalculatorOutlined,
   ThunderboltOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import { PacketVisualizer } from './components/PacketVisualizer';
@@ -30,6 +31,7 @@ import { HexEditor } from './components/HexEditor';
 import { PacketAnalysis } from './components/PacketAnalysis';
 import { ExportMenu } from './components/ExportMenu';
 import { AutoCalculator } from './components/AutoCalculator';
+import { TemplateManager } from './components/TemplateManager';
 import { parsePacket, validatePacket, serializePacket } from './lib/mpegts-parser';
 import { TSPacket, ValidationResult } from './types/TSPacket';
 import {
@@ -523,6 +525,17 @@ function App() {
                   />
                 ),
               },
+              {
+                key: 'templates',
+                label: 'Templates',
+                icon: <FolderOpenOutlined />,
+                children: (
+                  <TemplateManager
+                    currentPacket={packet}
+                    onLoadTemplate={handlePacketUpdate}
+                  />
+                ),
+              },
             ]}
           />
         </Space>
@@ -531,7 +544,7 @@ function App() {
       <Footer style={{ textAlign: 'center' }}>
         <Space direction="vertical" size="small">
           <Text type="secondary">
-            MPEG-TS Packet Inspector v3.0 - Phase 3: Auto-calculations, Export & Keyboard shortcuts
+            MPEG-TS Packet Inspector v3.1 - Phase 3: Auto-calculations, Export, Templates & Keyboard shortcuts
           </Text>
           <Text type="secondary" style={{ fontSize: 11 }}>
             Shortcuts: Ctrl+Z (Undo) | Ctrl+Y (Redo) | Ctrl+E (Edit Mode) | Ctrl+S (Export JSON) |
