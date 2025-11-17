@@ -14,19 +14,22 @@ import {
 } from 'antd';
 import {
   UploadOutlined,
-  DownloadOutlined,
   ReloadOutlined,
   UndoOutlined,
   RedoOutlined,
   EditOutlined,
   EyeOutlined,
   BarChartOutlined,
+  CalculatorOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import { PacketVisualizer } from './components/PacketVisualizer';
 import { EditablePacketVisualizer } from './components/EditablePacketVisualizer';
 import { HexEditor } from './components/HexEditor';
 import { PacketAnalysis } from './components/PacketAnalysis';
+import { ExportMenu } from './components/ExportMenu';
+import { AutoCalculator } from './components/AutoCalculator';
 import { parsePacket, validatePacket, serializePacket } from './lib/mpegts-parser';
 import { TSPacket, ValidationResult } from './types/TSPacket';
 import {
@@ -42,6 +45,8 @@ import {
   createComplexPacket,
 } from './utils/samplePackets';
 import { useHistory } from './hooks/useHistory';
+import { autoUpdateLengths, autoAddStuffing } from './utils/autoCalculations';
+import { exportToJSON, downloadFile } from './utils/exportImport';
 import './App.css';
 
 const { Header, Content, Footer } = Layout;
@@ -60,6 +65,7 @@ function App() {
 
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
 
   const packet = history.state.packet;
   const rawData = history.state.rawData;
@@ -72,6 +78,60 @@ function App() {
       setValidation(null);
     }
   }, [packet]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Z - Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        if (history.canUndo) {
+          e.preventDefault();
+          history.undo();
+          message.info('Undo');
+        }
+      }
+      // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
+      else if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
+               ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+        if (history.canRedo) {
+          e.preventDefault();
+          history.redo();
+          message.info('Redo');
+        }
+      }
+      // Ctrl/Cmd + E - Toggle Edit Mode
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        setEditMode((prev: boolean) => !prev);
+        message.info(`Edit mode ${!editMode ? 'enabled' : 'disabled'}`);
+      }
+      // Ctrl/Cmd + S - Export JSON
+      else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (packet) {
+          const json = exportToJSON(packet);
+          const pid = packet.header.pid;
+          const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+          downloadFile(json, `packet_pid${pid}_${timestamp}.json`, 'application/json');
+          message.success('JSON exported!');
+        }
+      }
+      // Ctrl/Cmd + L - Auto-Fix
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        if (packet) {
+          let updated = autoUpdateLengths(packet);
+          updated = autoAddStuffing(updated);
+          const newData = serializePacket(updated);
+          loadPacket(newData);
+          message.success('Auto-fixed!');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [history, packet, editMode]);
 
   const loadPacket = useCallback(
     (data: Uint8Array, addToHistory = true) => {
@@ -112,9 +172,9 @@ function App() {
 
   const uploadProps: UploadProps = {
     accept: '.ts,.bin,.dat',
-    beforeUpload: (file) => {
+    beforeUpload: (file: File) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (e: ProgressEvent<FileReader>) => {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const data = new Uint8Array(arrayBuffer);
 
@@ -182,6 +242,11 @@ function App() {
     message.success(`Sample packet "${name}" created!`);
   };
 
+  const handlePacketUpdate = (updatedPacket: TSPacket) => {
+    const data = serializePacket(updatedPacket);
+    loadPacket(data);
+  };
+
   const downloadPacket = () => {
     if (!packet) {
       message.warning('No packet to download');
@@ -190,7 +255,7 @@ function App() {
 
     try {
       const data = serializePacket(packet);
-      const blob = new Blob([data], { type: 'application/octet-stream' });
+      const blob = new Blob([data.buffer], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -202,6 +267,15 @@ function App() {
       message.error(`Failed to serialize packet: ${(error as Error).message}`);
     }
   };
+
+  const handlePacketUpdate = useCallback((updatedPacket: TSPacket) => {
+    try {
+      const data = serializePacket(updatedPacket);
+      loadPacket(data);
+    } catch (error) {
+      message.error(`Failed to update packet: ${(error as Error).message}`);
+    }
+  }, [loadPacket]);
 
   const handleHexEdit = (offset: number, value: number) => {
     if (!rawData) return;
@@ -271,8 +345,8 @@ function App() {
     return highlights;
   };
 
-  const errorCount = validation?.errors.filter((e) => e.severity === 'error').length || 0;
-  const warningCount = validation?.errors.filter((e) => e.severity === 'warning').length || 0;
+  const errorCount = validation?.errors.filter((e: ValidationError) => e.severity === 'error').length || 0;
+  const warningCount = validation?.errors.filter((e: ValidationError) => e.severity === 'warning').length || 0;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -368,13 +442,22 @@ function App() {
 
             <Divider type="vertical" />
 
+            <ExportMenu packet={packet} disabled={!packet} />
+
             <Button
-              icon={<DownloadOutlined />}
-              onClick={downloadPacket}
+              icon={<ThunderboltOutlined />}
+              onClick={() => {
+                if (packet) {
+                  let updated = autoUpdateLengths(packet);
+                  updated = autoAddStuffing(updated);
+                  handlePacketUpdate(updated);
+                }
+              }}
               disabled={!packet}
               type="primary"
+              title="Auto-Fix (Ctrl+L)"
             >
-              Download
+              Auto-Fix
             </Button>
 
             <Button
@@ -427,15 +510,34 @@ function App() {
                 icon: <BarChartOutlined />,
                 children: <PacketAnalysis packet={packet} validation={validation} />,
               },
+              {
+                key: 'calculator',
+                label: 'Auto-Calculator',
+                icon: <CalculatorOutlined />,
+                children: (
+                  <AutoCalculator
+                    packet={packet}
+                    onPacketUpdate={handlePacketUpdate}
+                    autoMode={autoMode}
+                    onAutoModeChange={setAutoMode}
+                  />
+                ),
+              },
             ]}
           />
         </Space>
       </Content>
 
       <Footer style={{ textAlign: 'center' }}>
-        <Text type="secondary">
-          MPEG-TS Packet Inspector v2.0 - Phase 2: Enhanced editing and analysis features
-        </Text>
+        <Space direction="vertical" size="small">
+          <Text type="secondary">
+            MPEG-TS Packet Inspector v3.0 - Phase 3: Auto-calculations, Export & Keyboard shortcuts
+          </Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            Shortcuts: Ctrl+Z (Undo) | Ctrl+Y (Redo) | Ctrl+E (Edit Mode) | Ctrl+S (Export JSON) |
+            Ctrl+L (Auto-Fix)
+          </Text>
+        </Space>
       </Footer>
     </Layout>
   );

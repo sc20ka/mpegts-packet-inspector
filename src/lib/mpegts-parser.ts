@@ -199,7 +199,7 @@ function parseAdaptationFieldExtension(data: Uint8Array, offset: number) {
   const flags = data[offset];
   offset++;
 
-  const extension: TSPacket['adaptationField']['extension'] = {
+  const extension: NonNullable<TSPacket['adaptationField']>['extension'] = {
     length: extLength,
     ltwFlag: !!(flags & 0b10000000),
     piecewiseRateFlag: !!(flags & 0b01000000),
