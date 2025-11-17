@@ -23,6 +23,7 @@ import {
   CalculatorOutlined,
   ThunderboltOutlined,
   FolderOpenOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import { PacketVisualizer } from './components/PacketVisualizer';
@@ -32,6 +33,7 @@ import { PacketAnalysis } from './components/PacketAnalysis';
 import { ExportMenu } from './components/ExportMenu';
 import { AutoCalculator } from './components/AutoCalculator';
 import { TemplateManager } from './components/TemplateManager';
+import { FieldHelpPanel } from './components/FieldHelp';
 import { parsePacket, validatePacket, serializePacket } from './lib/mpegts-parser';
 import { TSPacket, ValidationResult } from './types/TSPacket';
 import {
@@ -536,6 +538,12 @@ function App() {
                   />
                 ),
               },
+              {
+                key: 'help',
+                label: 'Field Reference',
+                icon: <BookOutlined />,
+                children: <FieldHelpPanel />,
+              },
             ]}
           />
         </Space>
@@ -544,7 +552,7 @@ function App() {
       <Footer style={{ textAlign: 'center' }}>
         <Space direction="vertical" size="small">
           <Text type="secondary">
-            MPEG-TS Packet Inspector v3.1 - Phase 3: Auto-calculations, Export, Templates & Keyboard shortcuts
+            MPEG-TS Packet Inspector v3.2 - Phase 3: Auto-calculations, Export, Templates, Help & Keyboard shortcuts
           </Text>
           <Text type="secondary" style={{ fontSize: 11 }}>
             Shortcuts: Ctrl+Z (Undo) | Ctrl+Y (Redo) | Ctrl+E (Edit Mode) | Ctrl+S (Export JSON) |
